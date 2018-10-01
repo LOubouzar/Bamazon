@@ -23,19 +23,19 @@ function displayAll() {
     console.log("========================================================================================");
     console.log("Thank you for browsing Bamazon!");
     console.log("These are all of our products for sale:\n");
-    // console.log("========================================================================================");
+
     connection.query("SELECT * FROM products", function (err, res) {
         if (err) throw err;
         // console.log(res);
         for (var i = 0; i < res.length; i++) {
             console.log("Item ID: " + res[i].item_ID + " || " + "Product: " + res[i].product_name + " || " + "Department: " + res[i].department_name + " || " + "Price: " + res[i].price + " || " + "Quanity Left: " + res[i].stock_quantity);
         }
-        // connection.end();
+
+        start();
     });
-    start();
+
     function start() {
         //asks user for for which item they would like to buy
-
         inquirer
             .prompt([
                 {
@@ -51,36 +51,28 @@ function displayAll() {
             ])
             .then(function (answer) {
                 connection.query(
-                    `SELECT * FROM PRODUCTS WHERE ${answer.selectID}`,
+                    //takes in the user input from the first prompt and inputs into SQL to pull out the selected product from the database.
+                    `SELECT * FROM PRODUCTS WHERE item_ID = ${answer.selectID}`,
                     function (err, res) {
                         if (err) throw err;
-//Having issues burying down through the results object and linking the ${answer.selectID} to the object. It is always pulling up the 1st object in the the response array.
-
-                        // console.log("Res:",res);
-                        // console.log(answer.selectID);
-                        // var chosenproduct;
-                        // for (var i = 0; i < res.length; i++){
-                        //     var chosenprodcut = res[i];
-                        // }
+                        //stores amount of stock left in database into a variable.
                         var stock = res[0].stock_quantity;
-                        console.log("Stock",stock);
+                        //stores the user's second input into a variable.
                         var quantityBought = answer.amount;
-                        console.log("QuantityBought", quantityBought);
-                        
+                        //if statement stating if the stock is greater or equal to the amount requested to buy then allow the purchase to go through                       
                         if (stock >= quantityBought) {
                             var remainderStock = stock - quantityBought;
                             var purchase = res[0].product_name;
                             var cost = res[0].price * quantityBought;
+                            console.log("========================================================================================");
                             console.log("You are purchasing", quantityBought, "of the", purchase, "(s). Your total purchase cost is $", cost, ".")
                             console.log("Thank you for shopping at Bamazon!")
-                            connection.query(
-                                `UPDATE product SET ? WHERE ?`, [
-                                    { stock_quantity: remainderStock },
-                                    { item_ID: answer.selectID }
-                                ],
-                            )
+                            console.log("========================================================================================");
+                            //updates the database and reduces the stock subtracting what the user purchased.
+                            connection.query(`UPDATE products SET STOCK_QUANTITY = ${remainderStock} WHERE item_ID = ${answer.selectID}`);
                             displayAll();
                         }
+                        //if stock is less then amount requested to buy then return this message.
                         else {
                             console.log("========================================================================================");
                             console.log("I'm sorry there isn't enough of these left to purchase.")
@@ -89,7 +81,7 @@ function displayAll() {
                             displayAll();
                         };
                     });
-                        
+
             });
     }
 };
